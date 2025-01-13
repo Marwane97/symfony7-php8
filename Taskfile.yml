@@ -1,0 +1,75 @@
+version: '3'
+
+vars:
+  DOCKER_COMPOSE_FILE: docker/docker-compose.yml
+  PHP_CONTAINER: project-fpm
+  MYSQL_CONTAINER: symfony-mysql
+  RABBITMQ_CONTAINER: symfony-rabbitmq
+  NETWORK_NAME: symfony-network
+
+tasks:
+  setup:
+    desc: Prepare and run docker environment
+    cmds:
+      - docker network create {{.NETWORK_NAME}} || true
+      - docker-compose -f {{.DOCKER_COMPOSE_FILE}} up -d --build
+
+  down:
+    desc: Stop and remove containers
+    cmds:
+      - docker-compose -f {{.DOCKER_COMPOSE_FILE}} down
+
+  restart:
+    desc: Restart all containers
+    cmds:
+      - docker-compose -f {{.DOCKER_COMPOSE_FILE}} restart
+
+  prepare:
+    desc: Install composer dependencies
+    cmds:
+      - docker exec -it {{.PHP_CONTAINER}} composer install
+
+  cc:
+    desc: Clear Symfony cache
+    cmds:
+      - docker exec -it {{.PHP_CONTAINER}} bin/console cache:clear
+
+  clear-log:
+    desc: Clear log directory
+    cmds:
+      - docker exec -it {{.PHP_CONTAINER}} rm -rf var/log/*
+
+  log:
+    desc: Tail symfony logs
+    cmds:
+      - docker exec -it {{.PHP_CONTAINER}} tail -f var/log/dev.log
+
+  bash:
+    desc: Enter PHP container bash
+    cmds:
+      - docker exec -it {{.PHP_CONTAINER}} bash
+
+  mysql:
+    desc: Enter MySQL container bash
+    cmds:
+      - docker exec -it {{.MYSQL_CONTAINER}} bash
+
+  rabbitmq:
+    desc: Enter RabbitMQ container bash
+    cmds:
+      - docker exec -it {{.RABBITMQ_CONTAINER}} bash
+
+  ps:
+    desc: List all containers
+    cmds:
+      - docker-compose -f {{.DOCKER_COMPOSE_FILE}} ps
+
+  logs:
+    desc: View output from containers
+    cmds:
+      - docker-compose -f {{.DOCKER_COMPOSE_FILE}} logs -f
+
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list
